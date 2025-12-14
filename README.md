@@ -1,7 +1,7 @@
 
 # srl — Spaced Repetition Learning TUI in Rust
 
-based heavily after this (this project)[https://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-cli]
+based heavily after this [this project] (https://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-clihttps://github.com/HayesBarber/spaced-repetition-learning?tab=readme-ov-file#srl--spaced-repetition-learning-cli)
 
 ## Overview
 
@@ -14,7 +14,7 @@ We use sqlLite to store all data locally, so nothing ever leaves your device.
 
 
 ## TUI 
-Leveraging (ratatui)[https://ratatui.rs/] to create stunning visuals, with minimal latency. 
+Leveraging [ratatui] (https://ratatui.rs/) to create stunning visuals, with minimal latency. 
 
 
 
