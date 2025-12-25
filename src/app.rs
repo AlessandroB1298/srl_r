@@ -5,14 +5,24 @@ use crate::screens::lib::{
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 use ratatui::Frame;
+use std::rc::Rc;
+use std::sync::Arc;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct App<'a> {
     pub should_quit: bool,
     pub current_screen: Screen<'a>,
+    pub db: Arc<rusqlite::Connection>, // Shared ownership
 }
 
 impl<'a> App<'a> {
+    pub fn new(db: Arc<rusqlite::Connection>) -> Self {
+        Self {
+            db,
+            current_screen: Screen::HomeScreen(HomeScreen::default()),
+            should_quit: false,
+        }
+    }
     pub fn handle_events(&mut self) -> io::Result<()> {
         if let Event::Key(key_event) = event::read()?
             && key_event.kind == KeyEventKind::Press
@@ -81,7 +91,10 @@ impl<'a> App<'a> {
 
     pub fn switch_screen_menu(&mut self, index: i8) {
         match index {
-            0 => self.current_screen = Screen::AddProblemScreen(AddProblemScreen::new()),
+            0 => {
+                self.current_screen =
+                    Screen::AddProblemScreen(AddProblemScreen::new(Arc::clone(&self.db)))
+            }
             _ => {}
         }
     }
