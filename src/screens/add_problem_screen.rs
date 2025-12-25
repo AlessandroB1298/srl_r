@@ -250,7 +250,7 @@ fn insert_new_problem(
         (problem_name, problem_rating),
     )?;
 
-    println!("Added to database successfully");
+    println!("Added to database.");
 
     Ok(())
 }
