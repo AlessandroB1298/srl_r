@@ -1,9 +1,19 @@
 mod app;
 use std::io;
 mod screens;
-fn main() -> io::Result<()> {
+use std::sync::Arc;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = ratatui::init();
-    let app_result = app::App::default().run(&mut terminal);
+
+    let conn = rusqlite::Connection::open("my_sqllite.db")?;
+    let db = Arc::new(conn);
+
+    let app_result = app::App::new(db).run(&mut terminal);
+
     ratatui::restore();
-    app_result
+
+    match app_result {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.into()),
+    }
 }
