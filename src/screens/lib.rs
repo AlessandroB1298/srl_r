@@ -46,6 +46,8 @@ pub struct AddProblemScreen<'a> {
     pub input_mode: InputSelector,
     pub db: Arc<rusqlite::Connection>,
     pub confirm_popup: bool,
+    pub successful_problem_added: bool,
+    pub failed_to_add_problem: bool,
 }
 
 pub enum Action {
