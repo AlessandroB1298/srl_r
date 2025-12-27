@@ -22,10 +22,9 @@ impl Default for MenuScreen {
         Self {
             menu_state,
             menu_options: &[
-                "1. Add New Problem",
-                "2. Update Problem X TODO",
-                "3. List All Problems X TODO",
-                "4. See Graph of Problems X TODO",
+                "1. Add/Update Problem",
+                "2. List All Problems X TODO",
+                "3. See Graph of Problems X TODO",
             ],
         }
     }
