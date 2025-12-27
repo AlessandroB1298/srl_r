@@ -48,6 +48,7 @@ pub struct AddProblemScreen<'a> {
     pub confirm_popup: bool,
     pub successful_problem_added: bool,
     pub failed_to_add_problem: bool,
+    pub sucessfully_updated_problem: bool,
 }
 
 pub enum Action {
