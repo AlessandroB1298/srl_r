@@ -9,12 +9,12 @@ use ratatui::style::{Color, Style};
 use ratatui::symbols::border;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Borders;
+use ratatui::widgets::Padding;
 use ratatui::widgets::Widget;
 use ratatui::widgets::{Block, Paragraph};
 use std::io;
 use std::sync::Arc;
 use tui_textarea::TextArea;
-
 impl<'a> AddProblemScreen<'a> {
     /// This is your "constructor"
     pub fn new(db: Arc<rusqlite::Connection>) -> Self {
@@ -24,6 +24,7 @@ impl<'a> AddProblemScreen<'a> {
         let confirm_popup = false;
         let successful_problem_added = false;
         let failed_to_add_problem = false;
+        let sucessfully_updated_problem = false;
         // Setup the textarea appearance ONCE here
         problem_name.set_block(
             Block::default()
@@ -50,6 +51,7 @@ impl<'a> AddProblemScreen<'a> {
             confirm_popup,
             successful_problem_added,
             failed_to_add_problem,
+            sucessfully_updated_problem,
         }
     }
 }
@@ -99,7 +101,7 @@ impl<'a> View for AddProblemScreen<'a> {
                 // to make sure we don't add to the inputs by accident
                 if self.confirm_popup {
                     match key_event.code {
-                        KeyCode::Char('Y') => {
+                        KeyCode::Char('A') => {
                             let problem_name: String = self.problem_name.lines().join("\n");
 
                             let problem_rating: String = self.problem_area.lines().join("\n");
@@ -116,15 +118,34 @@ impl<'a> View for AddProblemScreen<'a> {
                                 }
                             }
                         }
-                        KeyCode::Char('N') => {
+                        KeyCode::Char('U') => {
+                            let problem_name: String = self.problem_name.lines().join("\n");
+
+                            let problem_rating: String = self.problem_area.lines().join("\n");
+
+                            match update_problem(&self.db, &problem_name, &problem_rating) {
+                                Ok(true) => {
+                                    self.sucessfully_updated_problem = true;
+                                }
+                                Ok(false) => {
+                                    self.failed_to_add_problem = true;
+                                }
+                                Err(error) => {
+                                    println!("There was an error adding problem: {:#?}", error);
+                                }
+                            }
+                        }
+                        KeyCode::Esc => {
                             self.confirm_popup = false;
                             self.successful_problem_added = false;
                             self.failed_to_add_problem = false;
+                            self.sucessfully_updated_problem = false;
                         }
                         _ => {
                             self.confirm_popup = false;
                             self.successful_problem_added = false;
                             self.failed_to_add_problem = false;
+                            self.sucessfully_updated_problem = false;
                         }
                     }
                 } else {
@@ -154,13 +175,6 @@ impl<'a> Widget for &AddProblemScreen<'a> {
                         .fg(Color::Blue)
                         .add_modifier(Modifier::BOLD),
                 ),
-                " Scroll ".into(),
-                Span::styled(
-                    "<↑/↓>",
-                    Style::default()
-                        .fg(Color::Blue)
-                        .add_modifier(Modifier::BOLD),
-                ),
                 " Enter".into(),
                 Span::styled(
                     "<Enter>",
@@ -171,9 +185,10 @@ impl<'a> Widget for &AddProblemScreen<'a> {
             ]);
             let container_block = Block::default()
                 .borders(Borders::ALL)
-                .title_top(" 💻 Add Problem with Rating ")
+                .title_top(" 💻 Add / Update Problem with Rating ")
                 .title_bottom(instructions.centered())
-                .border_set(border::THICK);
+                .border_set(border::THICK)
+                .padding(Padding::new(1, 1, 2, 2));
 
             container_block.clone().render(area, buf);
 
@@ -194,7 +209,7 @@ impl<'a> Widget for &AddProblemScreen<'a> {
                 .split(chunks[1]); // We split the middle vertical chunk
             //
 
-            let header_text = "Here you can add a problem with the rating: 1-5";
+            let header_text = "Here you can add / update a problem with the rating: 1-5";
             Paragraph::new(header_text)
                 .centered()
                 .style(Style::default().fg(Color::Red))
@@ -204,16 +219,23 @@ impl<'a> Widget for &AddProblemScreen<'a> {
             self.problem_area.render(input_chunks[1], buf);
         } else {
             let instructions = Line::from(vec![
-                " No ".into(),
+                " Back ".into(),
                 Span::styled(
-                    "<N>",
+                    "<ESC>",
                     Style::default()
                         .fg(Color::Blue)
                         .add_modifier(Modifier::BOLD),
                 ),
-                " Yes".into(),
+                " Add ".into(),
                 Span::styled(
-                    "<Y>",
+                    "<A>",
+                    Style::default()
+                        .fg(Color::Blue)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                " Update ".into(),
+                Span::styled(
+                    "<U> ",
                     Style::default()
                         .fg(Color::Blue)
                         .add_modifier(Modifier::BOLD),
@@ -223,7 +245,7 @@ impl<'a> Widget for &AddProblemScreen<'a> {
 
             Block::default()
                 .borders(Borders::ALL)
-                .title_top("Confirm addition")
+                .title_top("Add / Update Confirmation ")
                 .title_bottom(instructions.centered())
                 .border_set(border::THICK)
                 .render(inner_area, buf);
@@ -238,6 +260,11 @@ impl<'a> Widget for &AddProblemScreen<'a> {
                 Paragraph::new("Could not add problem")
                     .centered()
                     .style(Style::default().fg(Color::LightRed))
+                    .render(inner_popup_area, buf);
+            } else if self.sucessfully_updated_problem {
+                Paragraph::new("Successfully Updated Problem")
+                    .centered()
+                    .style(Style::default().fg(Color::LightCyan))
                     .render(inner_popup_area, buf);
             }
         }
@@ -256,6 +283,7 @@ struct Problem {
     problem_name: String,
     problem_rating: String,
 }
+
 fn check_table(db: &Arc<rusqlite::Connection>, table_name: &str) -> rusqlite::Result<bool> {
     db.table_exists(None, table_name)
 }
@@ -265,6 +293,36 @@ fn check_row_exists(db: &Arc<rusqlite::Connection>, problem_name: &str) -> rusql
     let exists = db.query_row(query, [problem_name], |row| row.get(0))?;
 
     Ok(exists)
+}
+
+fn update_problem(
+    db: &Arc<rusqlite::Connection>,
+    problem_name: &String,
+    problem_rating: &String,
+) -> rusqlite::Result<bool> {
+    // Changed return type
+    let table_name = "user_problems";
+
+    // Ensure table exists
+    if !check_table(db, table_name).unwrap_or(false) {
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS user_problems (
+                problem_name TEXT NOT NULL,
+                problem_rating TEXT NOT NULL
+            )",
+            (),
+        )?;
+    }
+
+    if check_row_exists(db, problem_name).unwrap() {
+        db.execute(
+            "UPDATE user_problems SET problem_name = ?1 WHERE problem_rating = ?2",
+            (problem_name, problem_rating),
+        )?;
+        return Ok(true);
+    }
+
+    Ok(false)
 }
 
 fn insert_new_problem(
