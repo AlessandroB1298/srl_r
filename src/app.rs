@@ -1,11 +1,11 @@
 use crate::io;
 use crate::screens::lib::{
     Action, AddProblemScreen, HomeScreen, MenuScreen, Screen, ScreenAction, View,
+    ViewAllProblemsScreen,
 };
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 use ratatui::Frame;
-use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -31,6 +31,7 @@ impl<'a> App<'a> {
                 Screen::HomeScreen(home) => home,
                 Screen::MenuScreen(second) => second,
                 Screen::AddProblemScreen(add) => add,
+                Screen::ViewAllProblemsScreen(problem_screen) => problem_screen,
             };
 
             let action = view.handle_key_event(key_event);
@@ -57,6 +58,12 @@ impl<'a> App<'a> {
                 ScreenAction::MenuPrev => self.move_menu_selection(-1),
                 ScreenAction::MenuSelect => self.select_menu_item(),
             }
+        } else if let Screen::ViewAllProblemsScreen(_problem_screen) = &mut self.current_screen {
+            match action {
+                ScreenAction::MenuNext => self.move_menu_selection(1),
+                ScreenAction::MenuPrev => self.move_menu_selection(-1),
+                ScreenAction::MenuSelect => self.select_menu_item(),
+            }
         }
     }
 
@@ -71,6 +78,15 @@ impl<'a> App<'a> {
                 None => 0,
             };
             second.menu_state.select(Some(i));
+        } else if let Screen::ViewAllProblemsScreen(problem_screen) = &mut self.current_screen {
+            let i = match problem_screen.list_state.selected() {
+                Some(i) => {
+                    let len = problem_screen.items.len();
+                    (i as isize + direction).rem_euclid(len as isize) as usize
+                }
+                None => 0,
+            };
+            problem_screen.list_state.select(Some(i));
         }
     }
 
@@ -95,6 +111,10 @@ impl<'a> App<'a> {
                 self.current_screen =
                     Screen::AddProblemScreen(AddProblemScreen::new(Arc::clone(&self.db)))
             }
+            1 => {
+                self.current_screen =
+                    Screen::ViewAllProblemsScreen(ViewAllProblemsScreen::new(Arc::clone(&self.db)))
+            }
             _ => {}
         }
     }
@@ -108,6 +128,9 @@ impl<'a> App<'a> {
                 self.current_screen = Screen::HomeScreen(HomeScreen::default());
             }
             Screen::AddProblemScreen(_) => {
+                self.current_screen = Screen::MenuScreen(MenuScreen::default());
+            }
+            Screen::ViewAllProblemsScreen(_) => {
                 self.current_screen = Screen::MenuScreen(MenuScreen::default());
             }
         }
@@ -131,6 +154,7 @@ impl<'a> App<'a> {
             Screen::HomeScreen(home) => home,
             Screen::MenuScreen(second) => second,
             Screen::AddProblemScreen(add) => add,
+            Screen::ViewAllProblemsScreen(problem_screen) => problem_screen,
         };
 
         view.draw(frame);

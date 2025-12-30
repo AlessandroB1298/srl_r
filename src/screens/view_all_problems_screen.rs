@@ -1,5 +1,5 @@
-use crate::screens::lib::{Action, MenuScreen, ScreenAction, View};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use crate::screens::lib::{Action, Problem, ScreenAction, View, ViewAllProblemsScreen};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -9,28 +9,53 @@ use ratatui::style::{Color, Style};
 use ratatui::symbols::border;
 use ratatui::text::Text;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::Borders;
-use ratatui::widgets::{Block, List, ListState, Paragraph};
-use ratatui::widgets::{ListItem, Widget};
+use ratatui::widgets::{Block, Cell, Table, TableState};
+use ratatui::widgets::{Borders, Paragraph};
+use ratatui::widgets::{Row, Widget};
 use std::io;
+use std::sync::Arc;
 
-impl Default for MenuScreen {
-    fn default() -> Self {
-        let mut menu_state = ListState::default();
-        // Set the initial selection to the first item (0)
-        menu_state.select(Some(0));
+impl<'a> ViewAllProblemsScreen<'a> {
+    pub fn new(db: Arc<rusqlite::Connection>) -> Self {
+        let mut list_state = TableState::default();
+        list_state.select(Some(0));
+        let items = query_items(&db).unwrap();
         Self {
-            menu_state,
-            menu_options: &[
-                "1. Add / Update Problem",
-                "2. List All Problems ",
-                "3. See Graph of Problems X TODO",
-            ],
+            db,
+            items,
+            list_state,
         }
     }
 }
 
-impl View for MenuScreen {
+fn query_items(db: &Arc<rusqlite::Connection>) -> rusqlite::Result<Vec<Row<'static>>> {
+    let mut db_result = db.prepare("SELECT * FROM user_problems")?;
+    let problem_iter = db_result.query_map([], |row| {
+        Ok(Problem {
+            name: row.get(0)?,
+            rating: row.get(1)?,
+            entry_date: row.get(2)?,
+        })
+    })?;
+    let mut items: Vec<Row> = vec![];
+    for problem_result in problem_iter {
+        let problem = problem_result?;
+        let cells = vec![
+            Cell::from(problem.name),
+            Cell::from(problem.rating),
+            Cell::from(problem.entry_date),
+        ];
+        let row = Row::new(cells).height(2);
+        items.push(row);
+    }
+
+    Ok(items)
+}
+
+impl<'a> View for ViewAllProblemsScreen<'a> {
+    fn draw(&self, frame: &mut Frame) {
+        frame.render_widget(self, frame.area());
+    }
     fn handle_events(&mut self) -> io::Result<Action> {
         let mut some_action = Action::NoOp;
         match event::read()? {
@@ -48,27 +73,21 @@ impl View for MenuScreen {
         Ok(some_action)
     }
 
-    fn handle_key_event(&mut self, key_event: KeyEvent) -> Action {
+    fn handle_key_event(&mut self, key_event: crossterm::event::KeyEvent) -> Action {
         match key_event.code {
             KeyCode::Char('q') => Action::Quit, // Global
             KeyCode::Esc => Action::ShouldSwitch,
 
-            // Context-specific actions are wrapped in ScreenSpecific
             KeyCode::Down => Action::ScreenSpecific(ScreenAction::MenuNext),
             KeyCode::Up => Action::ScreenSpecific(ScreenAction::MenuPrev),
             KeyCode::Enter => Action::ScreenSpecific(ScreenAction::MenuSelect),
             _ => Action::NoOp,
         }
     }
-    fn draw(&self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
-    }
 }
 
-impl Widget for &MenuScreen {
+impl<'a> Widget for &ViewAllProblemsScreen<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        // --- 1. Instructions Block (Bottom Title) ---
-
         let instructions = Line::from(vec![
             " Quit ".into(),
             Span::styled(
@@ -102,10 +121,10 @@ impl Widget for &MenuScreen {
 
         let container_block = Block::default()
             .borders(Borders::ALL)
-            .title_top(" 💻 SRL-Rust Menu ")
-            .title_bottom(instructions.centered())
-            .border_set(border::THICK);
-
+            .border_set(border::THICK)
+            .border_style(Style::default().fg(Color::Cyan))
+            .title_top(Line::from(" 🔎 Problem Database Explorer ").centered())
+            .title_bottom(instructions.centered());
         container_block.clone().render(area, buf);
 
         let inner_area = container_block.inner(area);
@@ -114,16 +133,16 @@ impl Widget for &MenuScreen {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(3),
-                Constraint::Length(5),
+                Constraint::Length(10),
                 Constraint::Min(0),
             ])
             .split(inner_area);
 
         let welcome_area = chunks[0];
-        let menu_area = chunks[1];
+        //let menu_area = chunks[1];
 
         let welcome_text = Text::from(vec![Line::from(Span::styled(
-            "Welcome to SRL-Rust Problem Tracker!",
+            "View all problems added to database!",
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -139,23 +158,21 @@ impl Widget for &MenuScreen {
             .bg(Color::Green)
             .add_modifier(Modifier::BOLD);
 
-        let items: Vec<ListItem> = self
-            .menu_options
-            .iter()
-            .map(|&s| ListItem::new(s).style(Style::default().fg(Color::White)))
-            .collect();
+        let widths = [
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+        ];
+        let rows = self.items.clone();
 
-        let menu_list = List::new(items)
-            .block(
-                Block::default()
-                    .title(" Main Options ")
-                    .borders(Borders::NONE),
-            )
-            .highlight_style(selection_style)
-            .highlight_symbol(">> ");
+        let table = Table::new(rows, widths)
+            .header(Row::new(vec!["Problem Name", "Problem Rating", "Last Entry"]).bottom_margin(1))
+            .column_spacing(20)
+            .row_highlight_style(selection_style)
+            .highlight_symbol(">>");
 
-        let mut temp_state = self.menu_state.clone();
+        let mut temp_state = self.list_state.clone();
 
-        ratatui::widgets::StatefulWidget::render(menu_list, menu_area, buf, &mut temp_state);
+        ratatui::widgets::StatefulWidget::render(table, chunks[1], buf, &mut temp_state);
     }
 }
