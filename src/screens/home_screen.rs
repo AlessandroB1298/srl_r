@@ -82,7 +82,7 @@ impl Widget for &HomeScreen {
 
         let welcome_text = Text::from(vec![
             Line::from(
-                "Welcome to SRL-Rust, here we are implmeneting spaced repetitive learning in rust for leet code style questions",
+                "Welcome to SRL-Rust, here we are implmeneting spaced repetiton learning in rust for leet code style questions",
             ),
             Line::from("Press enter to begin..."),
         ])
