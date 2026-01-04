@@ -1,5 +1,6 @@
 mod app;
 use std::io;
+mod lib;
 mod screens;
 use std::sync::Arc;
 fn main() -> Result<(), Box<dyn std::error::Error>> {

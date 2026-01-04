@@ -1,6 +1,5 @@
-use crate::screens::lib::{Action, AddProblemScreen, InputSelector, Problem, View};
+use crate::lib::{Action, AddProblemScreen, InputSelector, Problem, View};
 use chrono::prelude::*;
-use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
@@ -67,25 +66,6 @@ impl<'a> AddProblemScreen<'a> {
 }
 
 impl<'a> View for AddProblemScreen<'a> {
-    fn handle_events(&mut self) -> io::Result<Action> {
-        let mut some_action = Action::NoOp;
-        let current_event = event::read()?;
-
-        match current_event {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                let result = self.handle_key_event(key_event);
-
-                match result {
-                    Action::Quit | Action::ShouldSwitch | Action::ScreenSpecific(_) => {
-                        some_action = result;
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
-        };
-        Ok(some_action)
-    }
     fn draw(&self, frame: &mut Frame) {
         frame.render_widget(self, frame.area());
     }

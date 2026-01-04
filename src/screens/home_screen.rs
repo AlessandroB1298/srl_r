@@ -1,5 +1,5 @@
-use crate::screens::lib::{Action, HomeScreen, View};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use crate::lib::{Action, HomeScreen, View};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -11,26 +11,8 @@ use ratatui::text::Text;
 use ratatui::widgets::Borders;
 use ratatui::widgets::Widget;
 use ratatui::widgets::{Block, Paragraph};
-use std::io;
 
 impl View for HomeScreen {
-    fn handle_events(&mut self) -> io::Result<Action> {
-        let mut some_action = Action::NoOp;
-        match event::read()? {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                let result = self.handle_key_event(key_event);
-                match result {
-                    Action::Quit | Action::ShouldSwitch => {
-                        some_action = result;
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
-        };
-        Ok(some_action)
-    }
-
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Action {
         match key_event.code {
             KeyCode::Char('q') => Action::Quit,

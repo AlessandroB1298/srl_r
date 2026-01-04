@@ -1,4 +1,4 @@
-use crate::screens::lib::{Action, MenuScreen, ScreenAction, View};
+use crate::lib::{Action, MenuScreen, ScreenAction, View};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
@@ -24,7 +24,7 @@ impl Default for MenuScreen {
             menu_options: &[
                 "1. Add / Update Problem",
                 "2. List All Problems ",
-                "3. See Graph of Problems X TODO",
+                "3. See Graph of Problems ",
             ],
         }
     }
