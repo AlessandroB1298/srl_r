@@ -1,4 +1,4 @@
-use crate::screens::lib::{Action, Problem, ScreenAction, View, ViewAllProblemsScreen};
+use crate::lib::{Action, Problem, ScreenAction, View, ViewAllProblemsScreen};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
@@ -20,6 +20,7 @@ impl<'a> ViewAllProblemsScreen<'a> {
         let mut list_state = TableState::default();
         list_state.select(Some(0));
         let items = query_items(&db).unwrap();
+
         Self {
             db,
             items,
@@ -30,6 +31,7 @@ impl<'a> ViewAllProblemsScreen<'a> {
 
 fn query_items(db: &Arc<rusqlite::Connection>) -> rusqlite::Result<Vec<Row<'static>>> {
     let mut db_result = db.prepare("SELECT * FROM user_problems")?;
+
     let problem_iter = db_result.query_map([], |row| {
         Ok(Problem {
             name: row.get(0)?,
@@ -55,22 +57,6 @@ fn query_items(db: &Arc<rusqlite::Connection>) -> rusqlite::Result<Vec<Row<'stat
 impl<'a> View for ViewAllProblemsScreen<'a> {
     fn draw(&self, frame: &mut Frame) {
         frame.render_widget(self, frame.area());
-    }
-    fn handle_events(&mut self) -> io::Result<Action> {
-        let mut some_action = Action::NoOp;
-        match event::read()? {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                let result = self.handle_key_event(key_event);
-                match result {
-                    Action::Quit | Action::ShouldSwitch | Action::ScreenSpecific(_) => {
-                        some_action = result;
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
-        };
-        Ok(some_action)
     }
 
     fn handle_key_event(&mut self, key_event: crossterm::event::KeyEvent) -> Action {
@@ -169,7 +155,7 @@ impl<'a> Widget for &ViewAllProblemsScreen<'a> {
             .header(Row::new(vec!["Problem Name", "Problem Rating", "Last Entry"]).bottom_margin(1))
             .column_spacing(20)
             .row_highlight_style(selection_style)
-            .highlight_symbol(">>");
+            .highlight_symbol(">> ");
 
         let mut temp_state = self.list_state.clone();
 

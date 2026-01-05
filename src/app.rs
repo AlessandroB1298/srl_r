@@ -1,6 +1,6 @@
 use crate::io;
-use crate::screens::lib::{
-    Action, AddProblemScreen, HomeScreen, MenuScreen, Screen, ScreenAction, View,
+use crate::lib::{
+    Action, AddProblemScreen, GraphScreen, HomeScreen, MenuScreen, Screen, ScreenAction, View,
     ViewAllProblemsScreen,
 };
 use crossterm::event::{self, Event, KeyEventKind};
@@ -32,6 +32,7 @@ impl<'a> App<'a> {
                 Screen::MenuScreen(second) => second,
                 Screen::AddProblemScreen(add) => add,
                 Screen::ViewAllProblemsScreen(problem_screen) => problem_screen,
+                Screen::GraphScreen(graph) => graph,
             };
 
             let action = view.handle_key_event(key_event);
@@ -115,6 +116,7 @@ impl<'a> App<'a> {
                 self.current_screen =
                     Screen::ViewAllProblemsScreen(ViewAllProblemsScreen::new(Arc::clone(&self.db)))
             }
+            2 => self.current_screen = Screen::GraphScreen(GraphScreen::new(Arc::clone(&self.db))),
             _ => {}
         }
     }
@@ -132,6 +134,9 @@ impl<'a> App<'a> {
             }
             Screen::ViewAllProblemsScreen(_) => {
                 self.current_screen = Screen::MenuScreen(MenuScreen::default());
+            }
+            Screen::GraphScreen(_) => {
+                self.current_screen = Screen::MenuScreen(MenuScreen::default())
             }
         }
     }
@@ -155,6 +160,7 @@ impl<'a> App<'a> {
             Screen::MenuScreen(second) => second,
             Screen::AddProblemScreen(add) => add,
             Screen::ViewAllProblemsScreen(problem_screen) => problem_screen,
+            Screen::GraphScreen(graph) => graph,
         };
 
         view.draw(frame);

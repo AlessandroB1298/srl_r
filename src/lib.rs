@@ -1,9 +1,10 @@
-use std::sync::Arc;
-
-use crate::io;
+use chrono::{DateTime, Utc};
 use crossterm::event::KeyEvent;
+use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::Frame;
-use ratatui::widgets::{ListItem, ListState, Row, TableState};
+use ratatui::widgets::{ListState, Row, TableState};
+use std::io;
+use std::sync::Arc;
 use tui_textarea::TextArea;
 
 #[derive(Debug)]
@@ -12,6 +13,7 @@ pub enum Screen<'a> {
     MenuScreen(MenuScreen),
     AddProblemScreen(AddProblemScreen<'a>),
     ViewAllProblemsScreen(ViewAllProblemsScreen<'a>),
+    GraphScreen(GraphScreen),
 }
 
 impl<'a> Default for Screen<'a> {
@@ -65,15 +67,20 @@ pub struct ViewAllProblemsScreen<'a> {
     pub list_state: TableState,
 }
 
+#[derive(Debug)]
+pub struct GraphScreen {
+    pub db: Arc<rusqlite::Connection>,
+    pub dates: Vec<String>,
+    pub offset: i32,
+    pub current_year: usize,
+}
+
 pub enum Action {
-    // Global Actions (Handled by App)
     Quit,
     ShouldSwitch,
 
-    // Screen-Specific Actions (Handled by the current View)
-    ScreenSpecific(ScreenAction), // <<< NEW: Holds context-specific actions
+    ScreenSpecific(ScreenAction),
 
-    // Fallback/No-Op
     NoOp,
 }
 
@@ -84,7 +91,22 @@ pub enum ScreenAction {
 }
 
 pub trait View {
-    fn handle_events(&mut self) -> io::Result<Action>;
+    fn handle_events(&mut self) -> io::Result<Action> {
+        let mut some_action = Action::NoOp;
+        match event::read()? {
+            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                let result = self.handle_key_event(key_event);
+                match result {
+                    Action::Quit | Action::ShouldSwitch | Action::ScreenSpecific(_) => {
+                        some_action = result;
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        };
+        Ok(some_action)
+    }
     fn draw(&self, frame: &mut Frame);
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Action;
 }
